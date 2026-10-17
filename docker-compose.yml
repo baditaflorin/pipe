@@ -1,0 +1,27 @@
+services:
+  app:
+    build: .
+    restart: always
+    ports:
+      - "18272:18272"
+    environment:
+      - PORT=18272
+      # Hard ceiling on entry lifetime. Requests may ask for less via
+      # ?ttl=<seconds>; they can never exceed this. Capped at 5m in code.
+      - PIPE_MAX_TTL=${PIPE_MAX_TTL:-5m}
+      # Max live entries before writes get 429'd until something expires.
+      - PIPE_MAX_ENTRIES=${PIPE_MAX_ENTRIES:-4096}
+      # Per-blob body cap (bytes). 10 MiB default.
+      - PIPE_MAX_BODY_BYTES=${PIPE_MAX_BODY_BYTES:-10485760}
+      # Total in-RAM budget across all live entries (bytes). 512 MiB default.
+      - PIPE_MAX_TOTAL_BYTES=${PIPE_MAX_TOTAL_BYTES:-536870912}
+      # Per-IP write rate limit (writes/min). Reads are never limited.
+      - PIPE_WRITES_PER_MIN=${PIPE_WRITES_PER_MIN:-60}
+      # Override the public base used in returned URLs. Empty = derive
+      # from the gateway-forwarded Host/Proto headers.
+      - PIPE_PUBLIC_BASE_URL=${PIPE_PUBLIC_BASE_URL:-}
+      # Set to 1 only behind a reverse proxy that appends the client address to
+      # X-Forwarded-For; the per-IP write limit then uses the address it added.
+      - PIPE_TRUST_PROXY=${PIPE_TRUST_PROXY:-}
+    networks:
+      - default

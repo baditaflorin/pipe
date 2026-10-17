@@ -1,0 +1,27 @@
+#!/bin/bash
+# Local CI gate. This runs on
+# every commit (enabled via `git config core.hooksPath .githooks`).
+set -e
+
+echo "pre-commit: gofmt check"
+unformatted=$(gofmt -l . 2>/dev/null)
+if [ -n "$unformatted" ]; then
+  echo "ERROR: these files need gofmt:"
+  echo "$unformatted"
+  echo "run: gofmt -w ."
+  exit 1
+fi
+
+echo "pre-commit: go vet"
+go vet ./...
+
+echo "pre-commit: go build"
+go build ./...
+
+echo "pre-commit: go test"
+go test ./...
+
+echo "pre-commit: version drift check"
+bash .githooks/validate-version.sh .
+
+echo "pre-commit: OK"

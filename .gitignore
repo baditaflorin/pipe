@@ -1,0 +1,17 @@
+# Compiled binary (built into the image, never committed)
+/pipe
+/app
+/out
+
+# Go build/test artifacts
+*.test
+*.out
+coverage.txt
+
+# Local env overrides
+.env
+.env.local
+
+# Editor / OS noise
+.DS_Store
+*.swp
