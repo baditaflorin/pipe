@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pipe</title>
+<meta name="description" content="Ephemeral copy/paste between machines with nothing but curl. Held in RAM for at most five minutes, optionally end-to-end encrypted.">
+<meta property="og:title" content="pipe">
+<meta property="og:description" content="Move text or a file between two machines with curl. Gone in five minutes. Optionally end-to-end encrypted.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233a5a8c'/%3E%3Cpath d='M7 16h18M19 10l6 6-6 6' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --ink: #1b1e24; --muted: #5a6170; --line: #dfe2e8;
+  --accent: #3a5a8c; --accent-ink: #ffffff; --code-bg: #eef0f4; --warn: #8a5a00; --warn-bg: #fdf3dd;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151a; --surface: #191d24; --ink: #e6e9ee; --muted: #a0a8b6; --line: #2a303a;
+    --accent: #8db3ee; --accent-ink: #0d121a; --code-bg: #1f242d; --warn: #f0c46a; --warn-bg: #2a2416;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151a; --surface: #191d24; --ink: #e6e9ee; --muted: #a0a8b6; --line: #2a303a;
+  --accent: #8db3ee; --accent-ink: #0d121a; --code-bg: #1f242d; --warn: #f0c46a; --warn-bg: #2a2416;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+header.top { border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+.brand { font-weight: 700; color: var(--ink); text-decoration: none; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+nav a { color: var(--muted); text-decoration: none; margin-left: 16px; font-size: 15px; }
+nav a:hover { color: var(--ink); }
+.hero { padding: 52px 0 28px; }
+.hero h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.12; letter-spacing: -0.02em; margin: 0 0 14px; }
+.hero p.lead { font-size: 19px; color: var(--muted); max-width: 660px; margin: 0 0 22px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-block; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+section { padding: 26px 0; border-top: 1px solid var(--line); }
+h2 { font-size: 23px; margin: 0 0 10px; }
+p { margin: 0 0 12px; }
+.muted { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h3 { font-size: 16px; margin: 0 0 6px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+pre { position: relative; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-size: 14px; line-height: 1.5; margin: 8px 0 16px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+p code, li code, td code { overflow-wrap: anywhere; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+pre .c { color: var(--muted); }
+pre .copy { position: absolute; top: 6px; right: 6px; font: 12px/1 ui-sans-serif, system-ui, sans-serif; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
+.note { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 10px 14px; font-size: 15px; }
+ul { padding-left: 20px; margin: 0 0 12px; }
+footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#">pipe</a>
+  <nav><a href="#use">Use it</a><a href="#encrypt">Encrypt</a><a href="https://github.com/baditaflorin/pipe">GitHub</a></nav>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>Copy and paste between machines, with nothing but curl.</h1>
+    <p class="lead">Push text or a file from one machine, pull it from another within five minutes, and it is gone. Held in memory only, never on disk. Add one flag and it is end-to-end encrypted: the server only ever sees ciphertext.</p>
+    <div class="cta">
+      <a class="btn primary" href="#use">Try it</a>
+      <a class="btn" href="https://pipe.0exec.com">Open the public pipe</a>
+      <a class="btn" href="https://github.com/baditaflorin/pipe">Source (Apache-2.0)</a>
+    </div>
+  </div>
+
+  <section id="use">
+    <h2>Use it</h2>
+    <p>The public instance at <code>https://pipe.0exec.com</code> is free to use within its limits. Every line below works the same in bash and zsh, on Linux and macOS.</p>
+<pre><code><span class="c"># machine A: push, get back a URL</span>
+dmesg | tail -50 | curl --data-binary @- https://pipe.0exec.com
+
+<span class="c"># machine B: pull it (within five minutes)</span>
+curl https://pipe.0exec.com/Xq7k2aPb
+
+<span class="c"># read once, then gone</span>
+echo 'one-time note' | curl --data-binary @- 'https://pipe.0exec.com/?burn=1'
+
+<span class="c"># a name you choose instead of a random id</span>
+uname -a | curl --data-binary @- https://pipe.0exec.com/my-slot
+curl https://pipe.0exec.com/my-slot</code></pre>
+    <p class="muted">Use <code>--data-binary @-</code>, not <code>-d</code>, which strips newlines. Add <code>?qr</code> to get a QR code of the link in your terminal, <code>?words</code> for an id you can say out loud, or <code>?notify=1</code> for a read receipt.</p>
+  </section>
+
+  <section id="encrypt">
+    <h2>End-to-end encryption</h2>
+    <p>Load the small shell helper once, then <code>p -e</code> encrypts on your machine before anything is uploaded. The key lives in the link's <code>#fragment</code>, which browsers and curl never send to a server.</p>
+<pre><code>eval "$(curl -s https://pipe.0exec.com/shell)"
+
+echo 'database password: hunter2' | p -e     <span class="c"># prints https://pipe.0exec.com/#id~key</span>
+p open 'https://pipe.0exec.com/#Xq7k2aPb~2f9c…'  <span class="c"># on the other machine: fetch and decrypt</span>
+
+p -e -f report.pdf                            <span class="c"># a file that carries its own name, size and sha256</span>
+p save 'https://pipe.0exec.com/#…'            <span class="c"># saves it under that name, never overwriting</span></code></pre>
+    <p class="muted">AES-256-CTR with HMAC-SHA256 (encrypt-then-MAC). Opening an encrypted link in a browser decrypts it in the page, with an image preview and a download button.</p>
+  </section>
+
+  <section>
+    <h2>What keeps it safe</h2>
+    <div class="grid">
+      <div class="card"><h3>Gone in five minutes</h3><p>A hard ceiling enforced in code; <code>?ttl=</code> can only shorten it. A restart empties everything.</p></div>
+      <div class="card"><h3>Unguessable ids</h3><p>Random base62 ids from the system's secure random source. The id is the only secret, so share links privately.</p></div>
+      <div class="card"><h3>Never executed</h3><p>Everything is served as <code>text/plain</code> with <code>nosniff</code>: a pasted script or page is shown, never run.</p></div>
+      <div class="card"><h3>Bounded</h3><p>10 MiB per entry, a total memory budget, and a per-address write limit. Reads are never limited.</p></div>
+    </div>
+    <p class="note">There are no accounts and no token: anyone who has a link can read it until it expires. Use <code>p -e</code> for anything you would not paste in public. Whoever runs a pipe sees sizes, timing and IP addresses, and the content of anything sent without <code>-e</code>.</p>
+  </section>
+
+  <section>
+    <h2>Run your own</h2>
+    <p>One static Go binary, no database. Put it behind a TLS reverse proxy and set <code>PIPE_TRUST_PROXY=1</code> there, so the write limit sees real client addresses.</p>
+<pre><code>go install github.com/baditaflorin/pipe@latest
+PIPE_ADDR=127.0.0.1:18272 pipe
+
+<span class="c"># or with Docker</span>
+git clone https://github.com/baditaflorin/pipe &amp;&amp; cd pipe &amp;&amp; docker compose up -d --build</code></pre>
+    <p class="muted">Every option is in the <a href="https://github.com/baditaflorin/pipe#readme">README</a>.</p>
+  </section>
+
+  <section>
+    <h2>Used by</h2>
+    <p><a href="https://baditaflorin.github.io/aivoicebus/">AiVoiceBus</a>, a message bus for AI coding agents, sends files through the pipe: <code>aivoicebus send --file</code> encrypts locally and the message carries only the link.</p>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  pipe is open source under the Apache-2.0 licence. ·
+  <a href="https://github.com/baditaflorin/pipe">Source</a> ·
+  <a href="https://github.com/baditaflorin/pipe/blob/main/SECURITY.md">Security</a> ·
+  <a href="https://baditaflorin.github.io/aivoicebus/">AiVoiceBus</a>
+</div></footer>
+
+<script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var b = document.createElement('button');
+  b.className = 'copy'; b.type = 'button'; b.textContent = 'Copy';
+  b.addEventListener('click', function () {
+    var text = pre.querySelector('code').innerText.split('\n').filter(function (l) { return !/^\s*#/.test(l); })
+      .map(function (l) { return l.replace(/\s+#.*$/, ''); }).join('\n').trim();
+    navigator.clipboard.writeText(text).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); });
+  });
+  pre.appendChild(b);
+});
+</script>
+</body>
+</html>
